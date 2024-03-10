@@ -11,9 +11,6 @@ engine = create_engine(url=settings.database_url, echo=True, future=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-# Base = declarative_base()
-
-
 def get_db() -> Generator:
     """
     Generator dependency yield database connection.

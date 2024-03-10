@@ -5,14 +5,11 @@ from fastapi import Depends
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
-from app.core.config import get_app_settings
 from app.core.security import get_password_hash
 from app.db.repositories.base import BaseRepository, ModelType, UpdateSchemaType
 from app.models.users import Users
 from app.schemas.users import UserInCreate, UserInUpdate
 from app.db.session import get_db
-
-settings = get_app_settings()
 
 
 class UsersRepository(BaseRepository[Users, UserInCreate, UserInUpdate]):
@@ -36,6 +33,13 @@ class UsersRepository(BaseRepository[Users, UserInCreate, UserInUpdate]):
         for field in obj_data:
             if field in update_data:
                 setattr(obj, field, update_data[field])
+        self.db.add(obj)
+        self.db.commit()
+        self.db.refresh(obj)
+        return obj
+
+    def disable_user(self, obj: Users) -> Users:
+        obj.disabled = True
         self.db.add(obj)
         self.db.commit()
         self.db.refresh(obj)

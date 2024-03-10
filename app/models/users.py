@@ -1,7 +1,7 @@
 import json
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, func
 from sqlalchemy.orm import relationship
 
 from app.core.security import get_password_hash
@@ -16,6 +16,9 @@ class Users(Base):
     roles = Column(String, nullable=False, default="buyer")  # Store roles as a JSON string
     hashed_password = Column(String, nullable=False)
     disabled = Column(Boolean, default=False)
+
+    created_time = Column(DateTime, default=func.now())
+    updated_time = Column(DateTime, default=func.now(), onupdate=func.now())
 
     products = relationship("Products", back_populates="creator")
     deposit = relationship("Deposits", back_populates="user")

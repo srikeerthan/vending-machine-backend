@@ -27,6 +27,10 @@ class PurchasesRepository(BaseRepository[Purchases, PurchaseInCreate, PurchaseIn
             self.db.refresh(purchase_obj)
         return purchases_objs
 
+    def are_purchases_exists_for_product(self, product_id: int) -> bool:
+        purchases = self.db.query(Purchases).filter(Purchases.product_id == product_id).first()
+        return True if purchases else False
+
 
 def get_purchases_repository(session: Session = Depends(get_db)) -> PurchasesRepository:
     return PurchasesRepository(db=session, model=Purchases)

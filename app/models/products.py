@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Numeric, Integer, ForeignKey, DateTime, func
+from sqlalchemy import Column, BigInteger, String, Numeric, Integer, ForeignKey, DateTime, func, Boolean
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -9,6 +9,7 @@ class Products(Base):
     name = Column(String, unique=True, index=True, nullable=False)
     price = Column(Numeric(11, 2), nullable=False)
     quantity = Column(Integer, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
 
     # Establishing many-to-one relationship with User
     creator_id = Column(Integer, ForeignKey('users.id'))

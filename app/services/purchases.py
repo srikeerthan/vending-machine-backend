@@ -3,13 +3,13 @@ from typing import List
 from fastapi import Depends, status
 from pydantic import parse_obj_as
 
+from app.core.constants import ALLOWED_CENT_COINS
 from app.core.exceptions import InvalidInputDataException
 from app.db.repositories.deposits import DepositsRepository, get_deposits_repository
 from app.db.repositories.products import ProductsRepository, get_products_repository
 from app.db.repositories.purchases import get_purchases_repository, PurchasesRepository
 from app.models.deposits import Deposits
 from app.models.products import Products
-from app.models.purchases import Purchases
 from app.schemas.purchases import PurchaseInCreate, PurchaseResponse, PurchaseItem
 
 
@@ -26,7 +26,7 @@ class PurchasesService:
     def handle_products(self, products: List[PurchaseItem],
                         deposit_amount: float) -> tuple[List[Products], float, dict]:
         product_ids = {product_item.product_id for product_item in products}
-        products_list = self.products_repo.get_products_by_product_ids(list(product_ids))
+        products_list = self.products_repo.get_active_products_by_product_ids(list(product_ids))
         if len(products_list) != len(product_ids):
             raise InvalidInputDataException(message="some of the provided product ids not exists",
                                             status_code=status.HTTP_400_BAD_REQUEST)
@@ -60,13 +60,12 @@ class PurchasesService:
         :return:
         """
         remaining_change_in_cents = remaining_change * 100
-        allowed_coins = [100, 50, 20, 10, 5]
         coin_count = []
 
-        for coin in allowed_coins:
+        for coin in ALLOWED_CENT_COINS:
             count = remaining_change_in_cents // coin
             if count > 0:
-                coin_count.append({"value": coin, "quantity": count})
+                coin_count.append({"value": coin, "quantity": int(count)})
                 remaining_change_in_cents %= coin
 
         return coin_count
@@ -76,8 +75,9 @@ class PurchasesService:
                                                                                      current_deposit.amount)
         self.purchases_repo.create_product_purchases(purchase, product_id_price_map, current_deposit.id)
         self.deposits_repo.update_deposit_as_utilized(current_deposit.id)
+        self.products_repo.update_product_quantities(purchase, products_list)
         result_json = purchase.dict(exclude_unset=True)
-        result_json['total_spent'] = round(current_deposit.amount - remaining_change, 2) * 100
+        result_json['total_spent'] = round(current_deposit.amount - remaining_change, 2)
         remaining_change_coins = self.get_remaining_coin_count(remaining_change)
         result_json["change"] = remaining_change_coins
         purchase_response = parse_obj_as(PurchaseResponse, result_json)

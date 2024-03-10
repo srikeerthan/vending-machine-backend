@@ -87,9 +87,21 @@ class ProductAlreadyExistsException(BaseInternalException):
     """
 
 
+class InvalidCentCoinException(BaseInternalException):
+    """
+    Exception raised when user deposits invalid cent coins
+    """
+
+
 class DepositsAlreadyExistsException(BaseInternalException):
     """
     Exception raised when not utilized deposits already exists for user
+    """
+
+
+class ActiveDepositsExistsException(BaseInternalException):
+    """
+    Exception raised when user has active deposits
     """
 
 

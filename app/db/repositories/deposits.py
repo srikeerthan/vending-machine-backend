@@ -16,6 +16,10 @@ class DepositsRepository(BaseRepository[Deposits, DepositInCreate, DepositInUpda
             Deposits.is_deposit_utilized == False).first()
         return deposit
 
+    def are_deposits_exists_for_user(self, user_id) -> bool:
+        deposit = self.db.query(Deposits).filter(Deposits.user_id == user_id).first()
+        return True if deposit else False
+
     def create_deposit_with_total_amount(self, obj_create: DepositInCreate, user_id: int,
                                          total_amount: float) -> ModelType:
         obj = self.model(**obj_create.dict(), user_id=user_id, amount=total_amount)

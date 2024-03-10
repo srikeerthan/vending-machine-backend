@@ -33,14 +33,14 @@ def get_current_product(product_id: int,
     :return:
     """
     product = products_repo.get(product_id)
-    if not product:
+    if not product or not product.is_active:
         raise ProductNotFoundException(
             message=f"Product with id `{product_id}` not found",
             status_code=status.HTTP_404_NOT_FOUND,
         )
     if product.creator_id != current_user.id:
         raise UserPermissionException(
-            message="Not enough permissions", status_code=status.HTTP_403_FORBIDDEN
+            message="You do not have permission for this product", status_code=status.HTTP_403_FORBIDDEN
         )
     return product
 
@@ -57,16 +57,3 @@ def get_current_deposit(current_user: Users = Depends(get_current_user),
     if not deposit:
         raise DepositsNotExistsException(message="Deposits not found", status_code=status.HTTP_404_NOT_FOUND)
     return deposit
-
-# def get_current_active_user(
-#     user_service: UserService = Depends(),
-#     current_user: User = Depends(get_current_user),
-# ) -> User:
-#     """
-#     Return current active user.
-#     """
-#     if not user_service.check_is_active(user=current_user):
-#         raise InactiveUserAccountException(
-#             message="Inactive user", status_code=HTTP_400_BAD_REQUEST
-#         )
-#     return current_user

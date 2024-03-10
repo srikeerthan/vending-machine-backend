@@ -1,9 +1,6 @@
 from typing import List
 
-from fastapi import status
-from pydantic import BaseModel, field_validator
-
-from app.core.exceptions import InvalidInputDataException
+from pydantic import BaseModel, Field
 
 
 class PurchaseInUpdate(BaseModel):
@@ -11,15 +8,8 @@ class PurchaseInUpdate(BaseModel):
 
 
 class PurchaseItem(BaseModel):
-    product_id: int
-    quantity: int
-
-    @field_validator('quantity')
-    def check_negative_quantity(cls, v):
-        if v < 0:
-            raise InvalidInputDataException(message="Product quantity cannot be negative",
-                                            status_code=status.HTTP_400_BAD_REQUEST)
-        return v
+    product_id: int = Field(strict=True, gt=0)
+    quantity: int = Field(strict=True, gt=0)
 
 
 class PurchaseInCreate(BaseModel):
@@ -43,8 +33,8 @@ class PurchaseInCreate(BaseModel):
 
 
 class CoinItem(BaseModel):
-    value: int
-    quantity: int
+    value: int = Field(strict=True, gt=0)
+    quantity: int = Field(strict=True, gt=0)
 
 
 class PurchaseResponse(BaseModel):

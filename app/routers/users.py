@@ -14,9 +14,6 @@ router = APIRouter()
 async def create_user(user: UserInCreate, user_service: UserService = Depends()) -> Response:
     """
     Creates a new user in the database.
-    :param user:
-    :param user_service:
-    :return:
     """
     user = user_service.register_user(user_create=user)
     return Response(data=user, message="User Registered successfully")
