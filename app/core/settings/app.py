@@ -1,5 +1,7 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Type
+
+from sqlalchemy import Pool
 
 from version import response
 

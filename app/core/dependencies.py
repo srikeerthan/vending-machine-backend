@@ -1,27 +1,45 @@
+import jwt
 from fastapi import Depends, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordBearer
 
-from app.core.exceptions import ProductNotFoundException, UserPermissionException, DepositsNotExistsException
+from app.core.constants import SECRET_KEY, ALGORITHM
+from app.core.exceptions import ProductNotFoundException, UserPermissionException, DepositsNotExistsException, \
+    InvalidUserCredentialsException
 from app.db.repositories.deposits import DepositsRepository, get_deposits_repository
 from app.db.repositories.products import ProductsRepository, get_products_repository
 from app.models.deposits import Deposits
 from app.models.products import Products
 from app.models.users import Users
+from app.schemas.users import TokenData
 from app.services.users import UserService
 
 basic_security = HTTPBasic()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 def get_current_user(
         user_service: UserService = Depends(),
-        credentials: HTTPBasicCredentials = Depends(basic_security),
+        token: str = Depends(oauth2_scheme)
 ) -> Users:
     """
     Return current user.
     """
-    user = user_service.authenticate(
-        username=credentials.username, password=credentials.password
-    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise InvalidUserCredentialsException(message="Invalid Credentials. Please try again!",
+                                                  status_code=status.HTTP_401_UNAUTHORIZED)
+        token_data = TokenData(username=username)
+    except jwt.exceptions.PyJWTError:
+        raise InvalidUserCredentialsException(message="Invalid Credentials. Please try again!",
+                                              status_code=status.HTTP_401_UNAUTHORIZED)
+    user = user_service.user_repo.get_by_username(username=token_data.username)
+    if not user or user.disabled:
+        raise InvalidUserCredentialsException(
+            message="Invalid Credentials. Please try again!",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
     return user
 
 

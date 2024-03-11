@@ -5,7 +5,7 @@ from app.db.base import Base
 
 
 class Products(Base):
-    id = Column(BigInteger, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String, unique=True, index=True, nullable=False)
     price = Column(Numeric(11, 2), nullable=False)
     quantity = Column(Integer, nullable=False)

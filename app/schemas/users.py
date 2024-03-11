@@ -99,5 +99,10 @@ class UserInDB(User):
                         "roles": ["seller"]}}
 
 
+class TokenData(BaseModel):
+    username: str | None = None
+
+
 class UserToken(BaseModel):
-    token: str
+    access_token: str
+    token_type: str

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.core.dependencies import get_current_user
+from app.core.exceptions import UserPermissionException, UserNotFoundException
 from app.models.users import Users
 from app.schemas.response import Response
 from app.schemas.users import UserInDB, UserInCreate, UserToken, UserLogin, UserInUpdate
@@ -31,10 +32,10 @@ async def login_user(user: UserLogin, user_service: UserService = Depends()) -> 
 @router.get("/{username}", response_model=Response[UserInDB])
 async def read_user(username: str, user: Users = Depends(get_current_user)) -> Response:
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise UserNotFoundException(status_code=status.HTTP_404_NOT_FOUND, message="User not found")
     if user.username != username:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to access this "
-                                                                          "resource")
+        raise UserPermissionException(status_code=status.HTTP_403_FORBIDDEN,
+                                      message="You don't have permission to access this resource")
     return Response(data=user, message="Successfully Retrieved user")
 
 

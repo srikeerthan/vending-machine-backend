@@ -1,9 +1,11 @@
 import json
-from http import HTTPStatus
+from datetime import timedelta, datetime, timezone
 
+import jwt
 from fastapi import Depends, status
 
-from app.core.exceptions import UserAlreadyExistException, UserNotFoundException, InvalidUserCredentialsException, \
+from app.core.constants import ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
+from app.core.exceptions import UserAlreadyExistException, InvalidUserCredentialsException, \
     InvalidRolesException, UserPermissionException, ActiveDepositsExistsException
 from app.core.logging import logger
 from app.core.security import verify_password, get_basic_auth_token
@@ -25,15 +27,28 @@ class UserService:
         self.products_repo = products_repo
         self.depositions_repo = deposits_repo
 
+    @staticmethod
+    def create_access_token(data: dict, expires_delta: timedelta | None = None):
+        to_encode = data.copy()
+        if expires_delta:
+            expire = datetime.now(timezone.utc) + expires_delta
+        else:
+            expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return encoded_jwt
+
     def login_user(self, user: UserLogin) -> UserToken:
         """
         Authenticate user with provided credentials.
         """
         logger.info(f"Try to login user: {user.username}")
         self.authenticate(username=user.username, password=user.password)
-        return UserToken(
-            token=get_basic_auth_token(username=user.username, password=user.password)
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = self.create_access_token(
+            data={"sub": user.username}, expires_delta=access_token_expires
         )
+        return UserToken(access_token=access_token, token_type="bearer")
 
     def handle_roles_update(self, user_id: int, new_roles: list, current_roles: str) -> None:
         current_roles = json.loads(current_roles)
@@ -57,7 +72,7 @@ class UserService:
         if db_user:
             raise UserAlreadyExistException(
                 message=f"User with username: `{user_create.username}` already exists",
-                status_code=HTTPStatus.UNAUTHORIZED,
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         logger.info(f"Creating user: {user_create.username}")
         user = self.user_repo.create(obj_create=user_create)
@@ -72,7 +87,7 @@ class UserService:
             if db_user:
                 raise UserAlreadyExistException(
                     message=f"User with username: `{user_in_update.username}` already exists",
-                    status_code=HTTPStatus.UNAUTHORIZED,
+                    status_code=status.HTTP_400_BAD_REQUEST,
                 )
         self.handle_roles_update(current_user.id, user_in_update.roles, current_user.roles)
 
@@ -105,13 +120,13 @@ class UserService:
         if not user or user.disabled:
             raise InvalidUserCredentialsException(
                 message=f"Invalid Credentials. Please try again",
-                status_code=HTTPStatus.UNAUTHORIZED,
+                status_code=status.HTTP_401_UNAUTHORIZED,
             )
         if not verify_password(
                 plain_password=password, hashed_password=user.hashed_password
         ):
             raise InvalidUserCredentialsException(
-                message="Invalid credentials", status_code=HTTPStatus.UNAUTHORIZED
+                message="Invalid credentials", status_code=status.HTTP_401_UNAUTHORIZED
             )
         return user
 
